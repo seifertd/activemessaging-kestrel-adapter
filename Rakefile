@@ -13,5 +13,8 @@ Bones {
   authors  'Douglas A. Seifert'
   email    'doug@dseifert.net'
   url      'http://github.org/seifertd/activemessaging-kestrel-adapter'
+  ignore_file '.gitignore'
+
+  depend_on 'memcache-client'
 }
 
