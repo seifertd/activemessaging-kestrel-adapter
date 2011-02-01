@@ -1,0 +1,8 @@
+development:
+  servers: localhost:22133
+
+test:
+  servers: localhost:22133
+
+production:
+  servers: localhost:22133
