@@ -44,9 +44,9 @@ module ActiveMessaging
         def send(destination_name, body, headers = {})
           ttl = (headers[:ttl] || 0).to_i
           if ttl <= 0
-            @kestrel.set(destination_name, body)
+            @kestrel.set(normalize(destination_name), body)
           else
-            @kestrel.set(destination_name, body, ttl)
+            @kestrel.set(normalize(destination_name), body, ttl)
           end
         end
 
@@ -56,7 +56,7 @@ module ActiveMessaging
             # Get a message from a subscribed queue, but don't favor any queue over another
             queues_to_check = @queues.size > 1 ? @queues.keys.sort_by{rand} : @queues.keys
             queues_to_check.each do |queue|
-              if item = @kestrel.get(queue)
+              if item = @kestrel.get(normalize(queue))
                 return item
               end
             end
@@ -65,6 +65,14 @@ module ActiveMessaging
           #end
           return nil
         end
+
+        private
+          def normalize(name)
+            # Kestrel doesn't like '/' chars in queue names, so get rid of them
+            # (and memoize the calculation)
+            @normalized_names ||= Hash.new {|h,k| h[k] = k.gsub('/', '--FS--')}
+            @normalized_names[name]
+          end
       end
     end
   end
