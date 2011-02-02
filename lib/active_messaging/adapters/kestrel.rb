@@ -1,9 +1,16 @@
 require 'memcache'
+require 'activemessaging/adapters/base'
 
 module ActiveMessaging
   module Adapters
+    # This module contains code to integrate the ActiveMessaging framework with a
+    # kestrel message queue server.
     module Kestrel
-      class Connection
+      # Simple struct for wrapping received messages
+      Message = Struct.new(:headers, :body, :command)
+
+      # Connection to a kestrel message queue server
+      class Connection < ActiveMessaging::Adapters::Base::Connection
         include ActiveMessaging::Adapter
         register :kestrel
         attr_accessor :reliable
@@ -22,11 +29,14 @@ module ActiveMessaging
           nil
         end
 
+        # Connect to the kestrel server using a Memcached client
         def connect
           @kestrel = MemCache.new(@config)
           @kestrel.servers = @config[:servers]
         end
-
+ 
+        # Subscribe to the named destination and begin receiving
+        # messages from it
         def subscribe(destination_name, headers = {})
           headers[:destination] = destination_name
           if @queues[destination_name]
@@ -37,10 +47,14 @@ module ActiveMessaging
           nil
         end
 
+        # Stop receiving messages from the named destination
         def unsubscribe(destination_name, headers = {})
           @queues.delete(destination_name)
         end
 
+        # Send a message to the named destination.  headers can
+        # include any of the following keys:
+        #    :ttl => Set the time to live of the message in seconds
         def send(destination_name, body, headers = {})
           ttl = (headers[:ttl] || 0).to_i
           if ttl <= 0
@@ -50,6 +64,8 @@ module ActiveMessaging
           end
         end
 
+        # Gets a message from any subscribed destination and returns it as a 
+        # ActiveMessaging::Adaptors::Kestrel::Message object
         def receive
           # TODO: Is this what ActiveMessaging expects: can it handle a nil return?
           #while (true)
@@ -57,7 +73,9 @@ module ActiveMessaging
             queues_to_check = @queues.size > 1 ? @queues.keys.sort_by{rand} : @queues.keys
             queues_to_check.each do |queue|
               if item = @kestrel.get(normalize(queue))
-                return item
+                # TODO: ActiveMessaging ought to provide a way to do messaging
+                # without having to wrap the messages in another object
+                return Message.new({'destination' => queue}, item, 'MESSAGE')
               end
             end
           #  # Sleep a bit so we don't get into a spinloop
