@@ -56,5 +56,5 @@ module ActivemessagingKestrelAdapter
 
 end  # module ActivemessagingKestrelAdapter
 
-ActivemessagingKestrelAdapter.require_all_libs_relative_to(__FILE__)
+ActivemessagingKestrelAdapter.require_all_libs_relative_to(__FILE__, 'active_messaging')
 
