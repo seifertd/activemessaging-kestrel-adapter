@@ -1,3 +1,10 @@
+== 0.0.2 / 2011-02-03
+* Implement simple retry in the face of receive errors to avoid log spew
+  by the ActiveMessaging Gateway as it retries over and over.  Extensible
+  with other retry policies.
+* Works with ActiveMessaging up to version 0.7.1
+* Add some configuration tests
+
 == 0.0.1 / 2011-02-02
 * First release, actually works in a Rails application.
 

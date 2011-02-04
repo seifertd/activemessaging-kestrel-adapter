@@ -14,9 +14,9 @@ Bones {
   url      'http://github.org/seifertd/activemessaging-kestrel-adapter'
   ignore_file '.gitignore'
   readme_file 'README.md'
-  version '0.0.1'
 
   depend_on 'memcache-client'
+  depend_on 'activemessaging'
 
   rdoc.include << 'README.md'
 

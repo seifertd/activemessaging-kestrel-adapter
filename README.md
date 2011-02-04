@@ -19,6 +19,13 @@ Examples
     # development:
     #   adapter: kestrel
     #   servers: localhost:22133
+    #   retry_policy:
+    #     strategy: SimpleRetry
+    #     config: 
+    #       tries: 1
+    #       delay: 5
+    # the retry_policy: second is optional and should be left out under
+    # most circumstances (see below).
     config = YAML.load(File.read("broker.yml"))
 
     adapter = ActiveMessaging::Adapter::Kestrel::Connection.new(config[:development])
@@ -28,12 +35,25 @@ Examples
     adapter.subscribe("queue2")
     adapter.receive # get a message from any of the subscribed queues, or nil if they are all empty
 
+Configuration
+-------------
+
+See the ActiveMessaging project for details of broker configuration.  This
+Kestrel adapter can be configured with a retry_policy, but it is not 
+necessary to do so as a sensible default will be used if the configuration
+is not present.  The default policy is as shown above.  The default
+policy in the face of receive exceptions is to sleep 5 seconds, then retry
+once.  If an exception still occurs, it is raised.  The strategy must
+refer to a class that once instantiated, responds to the do_work() method.
+The method must take a options hash.  The value of the options hash will 
+be the config: key in the configuration file.  For 99% of use cases, you
+should not even bother defining the retry_policy as the default is fine.
+The ability to override the policy is provided for edge cases.
 
 Requirements
 ------------
 
-* depends on memcached-client
-* flesh out the configuration
+* memcached-client
 
 Future
 ------
