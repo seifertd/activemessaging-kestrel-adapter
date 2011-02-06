@@ -24,7 +24,7 @@ module ActiveMessaging
         # times in the face of exceptions.  Returns return result of block if
         # successful.  If number of tries is exhausted, the exception is reraised.
         # Retry loop will sleep options[:delay] seconds between retries (default 5).
-        # If you want error logging, pass in :logger.  If not provided, Rails.logger
+        # If you want error logging, pass in :logger.  If not provided, ActiveMessaging.logger
         # is used if defined.
         def do_work(options = {})
           logger = defined?(::Rails) ? ::Rails.logger : nil
@@ -62,7 +62,7 @@ module ActiveMessaging
         def initialize(cfg = {})
           cfg = symbolize_keys(cfg)
           # TODO: Decide on fallback logging ...
-          @logger = cfg.delete(:logger) || (defined?(::Rails) && ::Rails.logger ? ::Rails.logger : nil) || default_logger
+          @logger = cfg.delete(:logger) || ActiveMessaging.logger || (defined?(::Rails) && ::Rails.logger ? ::Rails.logger : nil) || default_logger
           @retry_policy = cfg.delete(:retry_policy) || {:strategy => SimpleRetry, :config => {:tries => 1, :delay => 5}}
           @empty_queues_delay = cfg.delete(:empty_queues_delay) || 0.1
           if @retry_policy[:strategy].is_a?(String)

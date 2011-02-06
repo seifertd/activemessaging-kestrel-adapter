@@ -54,13 +54,16 @@ The ability to override the policy is provided for edge cases.
 Requirements
 ------------
 
+* activemessaging >= 0.7.1 
 * memcached-client
+
+Probably activesupport as well since activemessaging barfs if you do not
+include it at the right time for certain use cases.
 
 Future
 ------
 
 * Handle a cluster of kestrel servers
-* Write some tests (need a mock kestrel service?)
 
 Install
 -------
