@@ -7,7 +7,11 @@ module ActiveMessaging
     # kestrel message queue server.
     module Kestrel
       # Simple struct for wrapping received messages
-      Message = Struct.new(:headers, :body, :command)
+      Message = Struct.new(:headers, :body, :destination) do
+        def matches_subscription?(subscription)
+          destination.to_s == subscription.destination.value.to_s
+        end
+      end
 
       # Resolve the provided string into a class object
       def to_class(class_name, initial_scope = Kernel)
@@ -49,16 +53,20 @@ module ActiveMessaging
       class Connection < ActiveMessaging::Adapters::BaseConnection
         include ActiveMessaging::Adapter
         register :kestrel
-        attr_accessor :reliable
         # Reconnect on error
         attr_accessor :retry_policy
+        # Logging
+        attr_accessor :logger
 
-        def initialize(cfg)
+        # Create a new Kestrel adapter using the provided config
+        def initialize(cfg = {})
           cfg = symbolize_keys(cfg)
+          # TODO: Decide on fallback logging ...
+          @logger = cfg.delete(:logger) || (defined?(::Rails) && ::Rails.logger ? ::Rails.logger : nil) || default_logger
           @retry_policy = cfg.delete(:retry_policy) || {:strategy => SimpleRetry, :config => {:tries => 1, :delay => 5}}
+          @empty_queues_delay = cfg.delete(:empty_queues_delay) || 0.1
           if @retry_policy[:strategy].is_a?(String)
-            # TODO: when getting a retry policy strategy from the config file, it will be a string.  Convert it to a class
-            # using the Kestrel module as a context, then Kernel.
+            # Convert strategy from string to class
             @retry_policy[:strategy] = Kestrel.const_get(retry_policy[:strategy]) rescue Kestrel.to_class(@retry_policy[:strategy])
           end
           @config = cfg
@@ -69,6 +77,7 @@ module ActiveMessaging
 
         # Connect to the kestrel server using a Memcached client
         def connect
+          logger.debug("Creating connection to Kestrel using config #{@config.inspect}") if logger.level <= Logger::DEBUG
           @kestrel = MemCache.new(@config)
           @kestrel.servers = @config[:servers]
         end
@@ -105,25 +114,36 @@ module ActiveMessaging
         # Gets a message from any subscribed destination and returns it as a 
         # ActiveMessaging::Adaptors::Kestrel::Message object
         def receive
-          return nil if @subscriptions.size < 1
 
-          # instantiate a class for doing the retries
-          retrier = @retry_policy[:strategy].new
+          if @subscriptions.size > 0
+            # instantiate a class for doing the retries
+            retrier = @retry_policy[:strategy].new
 
-          retrier.do_work(@retry_policy[:config]) do
-            queues_to_check = @subscriptions.size > 1 ? @subscriptions.keys.sort_by{rand} : @subscriptions.keys
-            queues_to_check.each do |queue|
-              if item = @kestrel.get(normalize(queue))
-                # TODO: ActiveMessaging ought to provide a way to do messaging
-                # without having to wrap the messages in another object
-                return Message.new({'destination' => queue}, item, 'MESSAGE')
+            retrier.do_work(@retry_policy[:config]) do
+              queues_to_check = @subscriptions.size > 1 ? @subscriptions.keys.sort_by{rand} : @subscriptions.keys
+              queues_to_check.each do |queue|
+                if item = @kestrel.get(normalize(queue))
+                  # TODO: ActiveMessaging ought to provide a way to do messaging
+                  # without having to wrap the messages in another object
+                  #logger.debug("Got message from queue #{queue}: #{item}") if logger.level <= Logger::DEBUG
+                  return Message.new({'destination' => queue}, item, queue)
+                end
               end
             end
           end
+          # Sleep a little to avoid a spin loop (ActiveMessaging Gateway ought to do this)
+          sleep(@empty_queues_delay)
           return nil
         end
 
         private
+          def default_logger
+            # Create a logger on STDOUT at debug level
+            logger = Logger.new(STDOUT)
+            logger.level = Logger::DEBUG
+            logger
+          end
+
           def normalize(name)
             # Kestrel doesn't like '/' chars in queue names, so get rid of them
             # (and memoize the calculation)

@@ -19,6 +19,7 @@ Examples
     # development:
     #   adapter: kestrel
     #   servers: localhost:22133
+    #   empty_queues_delay: 0.1
     #   retry_policy:
     #     strategy: SimpleRetry
     #     config: 

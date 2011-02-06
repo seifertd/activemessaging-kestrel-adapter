@@ -1,3 +1,9 @@
+== 0.0.3 / 2011-02-05
+* Introduce a 0.1 second sleep in #receive if no subscribed queues have a message
+  to avoid spin loops in the ActiveMessaging Gateway.  This is a bug, IMHO, in
+  ActiveMessaging.
+* Fix bugs in receive loop to match new ActiveMessaging 0.7.1 API
+
 == 0.0.2 / 2011-02-03
 * Implement simple retry in the face of receive errors to avoid log spew
   by the ActiveMessaging Gateway as it retries over and over.  Extensible
