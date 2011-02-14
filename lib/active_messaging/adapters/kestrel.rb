@@ -58,6 +58,8 @@ module ActiveMessaging
         # Logging
         attr_accessor :logger
 
+        KESTREL_STATS_QUEUE_KEYS = [:items, :bytes, :total_items, :logsize, :expired_items, :mem_items, :mem_bytes, :age, :discarded, :waiters, :open_transactions] unless defined?(KESTREL_STATS_QUEUE_KEYS)
+
         # Create a new Kestrel adapter using the provided config
         def initialize(cfg = {})
           cfg = symbolize_keys(cfg)
@@ -73,6 +75,33 @@ module ActiveMessaging
           @subscriptions = {}
           connect
           nil
+        end
+
+        # Returns hash of hashes of hashes containing stats for each active queue
+        # in each member of the kestrel cluster.
+        # top level hash has following structure:
+        #  { "server1_def" => { "queue1" => { ... }, "queue2" => { ... } },
+        #    "server2_def" => { "queue1" => { ... }, "queue2" => { ... } } }
+        # "server_def" are host:port
+        def queue_stats
+          stats = @kestrel.stats
+          queues = stats.values.inject([]) do |queue_names, hash|
+            hash.keys.each do |key|
+              if md = /queue_(.+)_total_items/.match(key)
+                queue_names << md[1]
+              end
+            end
+            queue_names
+          end
+          stats.inject(Hash.new{|h,k| h[k] = Hash.new(&h.default_proc) }) do |return_hash, (server_def, stats_hash)|
+            queues.each do |queue|
+              KESTREL_STATS_QUEUE_KEYS.each do |key|
+                stats_key = "queue_#{queue}_#{key}"
+                return_hash[server_def][queue][key] = stats_hash[stats_key]
+              end
+            end
+            return_hash
+          end
         end
 
         # Connect to the kestrel server using a Memcached client
