@@ -1,3 +1,6 @@
+== 0.0.4 / 2011-02-15
+* Add a queue_stats method to get stats on server queues from the adapter.
+
 == 0.0.3 / 2011-02-05
 * Introduce a 0.1 second sleep in #receive if no subscribed queues have a message
   to avoid spin loops in the ActiveMessaging Gateway.  This is a bug, IMHO, in
