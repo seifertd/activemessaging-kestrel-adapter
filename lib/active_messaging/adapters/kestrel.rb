@@ -97,7 +97,8 @@ module ActiveMessaging
             queues.each do |queue|
               KESTREL_STATS_QUEUE_KEYS.each do |key|
                 stats_key = "queue_#{queue}_#{key}"
-                return_hash[server_def][queue][key] = stats_hash[stats_key]
+                denormalized_name = queue.gsub('--FS--', '/') # denormalize the name ...
+                return_hash[server_def][denormalized_name][key] = stats_hash[stats_key]
               end
             end
             return_hash
