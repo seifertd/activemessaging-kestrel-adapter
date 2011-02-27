@@ -1,3 +1,11 @@
+== 0.0.5 / 2011-02-27
+* Clean up retry_policy initialization.  Make sure the logger is set correctly.
+* Avoid reinstantiating a new retry policy object each time through the
+  receive method.  Create and reuse one object when the adapter is created.
+* Make the empty_queues_delay default to nil, or no sleep at all, for cases
+  where the adapter is used outside of the ActiveMessaging::Gateway receive
+  loop
+
 == 0.0.4 / 2011-02-15
 * Add a queue_stats method to get stats on server queues from the adapter.
 

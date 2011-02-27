@@ -51,11 +51,18 @@ be the config: key in the configuration file.  For 99% of use cases, you
 should not even bother defining the retry_policy as the default is fine.
 The ability to override the policy is provided for edge cases.
 
+empty_queues_delay is provided as a hack for when this adapter is used by the
+ActiveMessaging::Gateway messaging loop.  Without setting this to some
+small non zero value, the messaging loop will consume 100% of CPU if there
+are no messages is subscribed queues.  If you are using this adapter outside
+of the ActiveMessaging::Gateway messaging loop, do not set this key
+
 Requirements
 ------------
 
 * activemessaging >= 0.7.1 
 * memcached-client
+* activesupport
 
 Probably activesupport as well since activemessaging barfs if you do not
 include it at the right time for certain use cases.

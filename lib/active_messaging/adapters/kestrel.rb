@@ -27,11 +27,10 @@ module ActiveMessaging
         # If you want error logging, pass in :logger.  If not provided, ActiveMessaging.logger
         # is used if defined.
         def do_work(options = {})
-          logger = defined?(::Rails) ? ::Rails.logger : nil
-          use_options = {:tries => 3, :delay => 5, :logger => logger}.merge(options || {})
+          use_options = {:tries => 3, :delay => 5}.merge(options || {})
           exception = nil
           return_value = nil
-          logger = use_options[:logger]
+          logger = use_options[:logger] || (defined?(::ActiveMessaging) ? ::ActiveMessaging.logger : nil)
           use_options[:tries].times do |try|
             begin
               exception = nil
@@ -62,17 +61,26 @@ module ActiveMessaging
 
         # Create a new Kestrel adapter using the provided config
         def initialize(cfg = {})
+          # Like symbol keys
           cfg = symbolize_keys(cfg)
-          # TODO: Decide on fallback logging ...
+
+          # Create a logger.  Use framework loggers when available.
           @logger = cfg.delete(:logger) || ActiveMessaging.logger || (defined?(::Rails) && ::Rails.logger ? ::Rails.logger : nil) || default_logger
+
+          # Get the retry policy
           @retry_policy = cfg.delete(:retry_policy) || {:strategy => SimpleRetry, :config => {:tries => 1, :delay => 5}}
-          @empty_queues_delay = cfg.delete(:empty_queues_delay) || 0.1
+          # If the retry policy came from the cfg, make sure we set the :logger
+          @retry_policy[:config][:logger] ||= @logger
+          # Turn the strategy into a Class if it is a String
           if @retry_policy[:strategy].is_a?(String)
             # Convert strategy from string to class
-            @retry_policy[:strategy] = Kestrel.const_get(retry_policy[:strategy]) rescue Kestrel.to_class(@retry_policy[:strategy])
+            @retry_policy[:strategy] = Kestrel.const_get(@retry_policy[:strategy]) rescue Kestrel.to_class(@retry_policy[:strategy])
           end
+
+          @empty_queues_delay = cfg.delete(:empty_queues_delay)
           @config = cfg
           @subscriptions = {}
+          retrier
           connect
           nil
         end
@@ -107,9 +115,16 @@ module ActiveMessaging
 
         # Connect to the kestrel server using a Memcached client
         def connect
-          logger.debug("Creating connection to Kestrel using config #{@config.inspect}") if logger.level <= Logger::DEBUG
+          logger.debug("Creating connection to Kestrel using config #{@config.inspect}") if logger && logger.level <= Logger::DEBUG
           @kestrel = MemCache.new(@config)
           @kestrel.servers = @config[:servers]
+        end
+
+        # Creates a retrier object according to the @retry_policy
+        def retrier
+          @retrier ||= begin
+            @retry_policy[:strategy].new
+          end
         end
  
         # Subscribe to the named destination and begin receiving
@@ -146,10 +161,7 @@ module ActiveMessaging
         def receive
 
           if @subscriptions.size > 0
-            # instantiate a class for doing the retries
-            retrier = @retry_policy[:strategy].new
-
-            retrier.do_work(@retry_policy[:config]) do
+            @retrier.do_work(@retry_policy[:config]) do
               queues_to_check = @subscriptions.size > 1 ? @subscriptions.keys.sort_by{rand} : @subscriptions.keys
               queues_to_check.each do |queue|
                 if item = @kestrel.get(normalize(queue))
@@ -162,7 +174,7 @@ module ActiveMessaging
             end
           end
           # Sleep a little to avoid a spin loop (ActiveMessaging Gateway ought to do this)
-          sleep(@empty_queues_delay)
+          sleep(@empty_queues_delay) if @empty_queues_delay && @empty_queues_delay > 0
           return nil
         end
 
