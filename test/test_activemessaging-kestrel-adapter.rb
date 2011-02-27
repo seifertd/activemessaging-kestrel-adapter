@@ -7,8 +7,9 @@ class TestActiveMessagingKestrelAdapter < Test::Unit::TestCase
   def test_default_config
     cfg = {:servers => 'localhost:22133'}
     adapter = ActiveMessaging::Adapters::Kestrel::Connection.new(cfg)
-    assert_equal adapter.instance_variable_get("@retry_policy")[:strategy], ActiveMessaging::Adapters::Kestrel::SimpleRetry
-    assert_equal adapter.instance_variable_get("@retry_policy")[:config], {:tries => 1, :delay => 5}
+    assert_equal ActiveMessaging::Adapters::Kestrel::SimpleRetry, adapter.instance_variable_get("@retry_policy")[:strategy]
+    assert_equal 1, adapter.instance_variable_get("@retry_policy")[:config][:tries]
+    assert_equal 5, adapter.instance_variable_get("@retry_policy")[:config][:delay]
   end
 
   def test_config_from_yaml
@@ -24,7 +25,8 @@ development:
     YAML
     cfg = YAML.load(yaml)['development']
     adapter = ActiveMessaging::Adapters::Kestrel::Connection.new(cfg)
-    assert_equal adapter.instance_variable_get("@retry_policy")[:strategy], ActiveMessaging::Adapters::Kestrel::SimpleRetry
-    assert_equal adapter.instance_variable_get("@retry_policy")[:config], {:tries => 1, :delay => 5}
+    assert_equal ActiveMessaging::Adapters::Kestrel::SimpleRetry, adapter.instance_variable_get("@retry_policy")[:strategy]
+    assert_equal 1, adapter.instance_variable_get("@retry_policy")[:config][:tries]
+    assert_equal 5, adapter.instance_variable_get("@retry_policy")[:config][:delay]
   end
 end
