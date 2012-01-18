@@ -17,7 +17,8 @@ Bones {
 
   depend_on 'memcache-client'
   depend_on 'activemessaging', '>= 0.7.1'
-  depend_on 'activesupport', '~>2.3'
+  depend_on 'activesupport'
+  depend_on 'i18n'
 
   rdoc.include << 'README.md'
 

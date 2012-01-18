@@ -1,3 +1,8 @@
+require 'memcache'
+require 'i18n'
+require 'active_support'
+require 'active_support/core_ext'
+require 'activemessaging'
 
 module ActivemessagingKestrelAdapter
 
@@ -56,5 +61,5 @@ module ActivemessagingKestrelAdapter
 
 end  # module ActivemessagingKestrelAdapter
 
-ActivemessagingKestrelAdapter.require_all_libs_relative_to(__FILE__, 'active_messaging')
+require 'active_messaging/adapters/kestrel'
 

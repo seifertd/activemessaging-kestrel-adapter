@@ -1,6 +1,4 @@
 require 'test/unit'
-require 'active_support'  # Annoying that I have to do this for the ActiveMessaging framework ...
-require 'activemessaging'
 require 'activemessaging-kestrel-adapter'
 
 class TestActiveMessagingKestrelAdapter < Test::Unit::TestCase
