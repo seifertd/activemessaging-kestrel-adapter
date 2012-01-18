@@ -4,6 +4,8 @@ require 'active_support'
 require 'active_support/core_ext'
 require 'activemessaging'
 
+ActiveMessaging.load_extensions
+
 module ActivemessagingKestrelAdapter
 
   # :stopdoc:
