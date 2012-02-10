@@ -6,6 +6,11 @@ module ActiveMessaging
     # This module contains code to integrate the ActiveMessaging framework with a
     # kestrel message queue server.
     module Kestrel
+      QUEUE_NAME_NORMALIZATIONS = {
+        '/' => '4S4S4S',
+        '.' => 'D0TD0TD0T',
+        '~' => 'T1LT1LT1L'
+      }
       # Simple struct for wrapping received messages
       Message = Struct.new(:headers, :body, :destination) do
         def matches_subscription?(subscription)
@@ -105,7 +110,7 @@ module ActiveMessaging
             queues.each do |queue|
               KESTREL_STATS_QUEUE_KEYS.each do |key|
                 stats_key = "queue_#{queue}_#{key}"
-                denormalized_name = queue.gsub('--FS--', '/') # denormalize the name ...
+                denormalized_name = queue.gsub('FS', '/') # denormalize the name ...
                 return_hash[server_def][denormalized_name][key] = stats_hash[stats_key]
               end
             end
@@ -186,10 +191,27 @@ module ActiveMessaging
             logger
           end
 
+          def denormalize(name)
+            @denormalized_names ||= Hash.new do |h,k|
+              newkey = k
+              QUEUE_NAME_NORMALIZATIONS.each do |bad, good|
+                newkey = newkey.gsub(good, bad)
+              end
+              h[k] = newkey
+            end
+            @denormalized_names[name]
+          end
+
           def normalize(name)
-            # Kestrel doesn't like '/' chars in queue names, so get rid of them
+            # Kestrel doesn't like certain chars in queue names, so get rid of them
             # (and memoize the calculation)
-            @normalized_names ||= Hash.new {|h,k| h[k] = k.gsub('/', '--FS--')}
+            @normalized_names ||= Hash.new do |h,k|
+              newkey = k
+              QUEUE_NAME_NORMALIZATIONS.each do |bad, good|
+                newkey = newkey.gsub(bad, good)
+              end
+              h[k] = newkey
+            end
             @normalized_names[name]
           end
 
