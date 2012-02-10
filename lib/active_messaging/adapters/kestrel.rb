@@ -7,9 +7,9 @@ module ActiveMessaging
     # kestrel message queue server.
     module Kestrel
       QUEUE_NAME_NORMALIZATIONS = {
-        '/' => '4S4S4S',
-        '.' => 'D0TD0TD0T',
-        '~' => 'T1LT1LT1L'
+        '/' => '__4S__',
+        '.' => '__D0T__',
+        '~' => '__T1L__'
       }
       # Simple struct for wrapping received messages
       Message = Struct.new(:headers, :body, :destination) do
