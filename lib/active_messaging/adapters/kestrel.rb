@@ -110,7 +110,7 @@ module ActiveMessaging
             queues.each do |queue|
               KESTREL_STATS_QUEUE_KEYS.each do |key|
                 stats_key = "queue_#{queue}_#{key}"
-                denormalized_name = queue.gsub('FS', '/') # denormalize the name ...
+                denormalized_name = denormalize_name(queue) # denormalize the name ...
                 return_hash[server_def][denormalized_name][key] = stats_hash[stats_key]
               end
             end
@@ -120,7 +120,7 @@ module ActiveMessaging
 
         # Connect to the kestrel server using a Memcached client
         def connect
-          logger.debug("Creating connection to Kestrel using config #{@config.inspect}") if logger && logger.level <= Logger::DEBUG
+          logger.debug("Creating connection to Kestrel using config #{@config.inspect}") if logger && logger.debug?
           @kestrel = MemCache.new(@config)
           @kestrel.servers = @config[:servers]
         end
@@ -172,7 +172,7 @@ module ActiveMessaging
                 if item = @kestrel.get(normalize(queue))
                   # TODO: ActiveMessaging ought to provide a way to do messaging
                   # without having to wrap the messages in another object
-                  #logger.debug("Got message from queue #{queue}: #{item}") if logger.level <= Logger::DEBUG
+                  #logger.debug("Got message from queue #{queue}: #{item}") if logger && logger.debug?
                   return Message.new({'destination' => queue}, item, queue)
                 end
               end
